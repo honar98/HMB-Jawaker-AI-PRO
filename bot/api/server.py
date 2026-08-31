@@ -3,6 +3,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from bot.auth.database import Database
 from bot.auth.service import AuthService
+from bot.auth.session import SessionManager
 from bot.api.subscription_api import SubscriptionAPI
 from bot.subscription.plans import get_plans
 
@@ -14,6 +15,7 @@ db.initialize()
 
 auth = AuthService(db)
 subscriptions = SubscriptionAPI(db)
+sessions = SessionManager()
 
 
 class APIHandler(BaseHTTPRequestHandler):
@@ -73,6 +75,47 @@ class APIHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "plans": plans,
+                },
+            )
+            return
+
+        if self.path == "/api/subscription":
+            authorization = self.headers.get(
+                "Authorization",
+                "",
+            )
+
+            if not authorization.startswith("Bearer "):
+                self.send_json(
+                    401,
+                    {
+                        "ok": False,
+                        "error": "Authentication required",
+                    },
+                )
+                return
+
+            token = authorization[7:].strip()
+            user_id = sessions.get_user_id(token)
+
+            if user_id is None:
+                self.send_json(
+                    401,
+                    {
+                        "ok": False,
+                        "error": "Invalid or expired token",
+                    },
+                )
+                return
+
+            self.send_json(
+                200,
+                {
+                    "ok": True,
+                    "user_id": user_id,
+                    "subscription": subscriptions.get_status(
+                        user_id
+                    ),
                 },
             )
             return
@@ -140,11 +183,17 @@ class APIHandler(BaseHTTPRequestHandler):
                 )
                 return
 
+            token = sessions.create(
+                user["user_id"]
+            )
+
             self.send_json(
                 200,
                 {
                     "ok": True,
                     "user": user,
+                    "token": token,
+                    "token_type": "Bearer",
                 },
             )
 
