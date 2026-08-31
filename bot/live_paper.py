@@ -2,11 +2,11 @@ import json
 import os
 import threading
 import time
-import urllib.request
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from bot.paper_account import PaperAccount
+from bot.mt5_bridge.metaapi import get_price as metaapi_get_price
 
 
 SYMBOL = "EURUSD"
@@ -92,32 +92,10 @@ def start_health_server():
 
 def get_price():
 
-    url = (
-        "https://query1.finance.yahoo.com/v8/finance/chart/"
-        "EURUSD=X?interval=1m&range=1d"
-    )
+    quote = metaapi_get_price(SYMBOL)
 
-    request = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": "Mozilla/5.0"
-        },
-    )
-
-    with urllib.request.urlopen(
-        request,
-        timeout=15
-    ) as response:
-
-        data = json.loads(
-            response.read()
-        )
-
-    result = data["chart"]["result"][0]
-
-    price = result["meta"]["regularMarketPrice"]
-
-    return float(price)
+    # Use the mid price for the paper account.
+    return (quote["bid"] + quote["ask"]) / 2
 
 
 def open_paper_buy(price, timestamp):
