@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 SYMBOL = "EURUSD"
-INTERVAL = 3600
+INTERVAL = 60
 PORT = 8080
 
 last_price = None
