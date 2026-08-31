@@ -1,0 +1,11 @@
+app = "hmb-forex-ai"
+
+[build]
+
+[env]
+  PYTHONUNBUFFERED = "1"
+
+[vm]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
