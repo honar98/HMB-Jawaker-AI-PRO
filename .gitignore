@@ -5,3 +5,10 @@ __pycache__/
 .env.*
 !.env.example
 *.log
+
+# Android / Gradle
+android/.gradle/
+android/build/
+android/app/build/
+*.apk
+*.aab
