@@ -3,13 +3,17 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from bot.auth.database import Database
 from bot.auth.service import AuthService
+from bot.api.subscription_api import SubscriptionAPI
+from bot.subscription.plans import get_plans
 
 
 PORT = 8081
 
 db = Database()
 db.initialize()
+
 auth = AuthService(db)
+subscriptions = SubscriptionAPI(db)
 
 
 class APIHandler(BaseHTTPRequestHandler):
@@ -61,6 +65,18 @@ class APIHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if self.path == "/api/plans":
+            plans = get_plans()
+
+            self.send_json(
+                200,
+                {
+                    "ok": True,
+                    "plans": plans,
+                },
+            )
+            return
+
         self.send_json(
             404,
             {"error": "Not found"},
@@ -73,7 +89,10 @@ class APIHandler(BaseHTTPRequestHandler):
         if payload is None:
             self.send_json(
                 400,
-                {"ok": False, "error": "Invalid JSON"},
+                {
+                    "ok": False,
+                    "error": "Invalid JSON",
+                },
             )
             return
 
