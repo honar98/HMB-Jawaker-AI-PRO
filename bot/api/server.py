@@ -61,6 +61,49 @@ class APIHandler(BaseHTTPRequestHandler):
         except (ValueError, json.JSONDecodeError):
             return None
 
+    def require_active_subscription(self):
+        authorization = self.headers.get(
+            "Authorization",
+            "",
+        )
+
+        if not authorization.startswith("Bearer "):
+            self.send_json(
+                401,
+                {
+                    "ok": False,
+                    "error": "Authentication required",
+                },
+            )
+            return None
+
+        token = authorization[7:].strip()
+        user_id = sessions.get_user_id(token)
+
+        if user_id is None:
+            self.send_json(
+                401,
+                {
+                    "ok": False,
+                    "error": "Invalid or expired token",
+                },
+            )
+            return None
+
+        status = subscriptions.get_status(user_id)
+
+        if not status.get("active"):
+            self.send_json(
+                403,
+                {
+                    "ok": False,
+                    "error": "Active subscription required",
+                },
+            )
+            return None
+
+        return user_id
+
     def do_GET(self):
 
         if self.path == "/api/health":
@@ -314,6 +357,82 @@ class APIHandler(BaseHTTPRequestHandler):
 
         if self.path == "/api/payment/callback":
             self.payment_callback()
+            return
+
+        if self.path == "/api/forex/signal":
+            user_id = self.require_active_subscription()
+
+            if user_id is None:
+                return
+
+            payload = self.read_json()
+
+            if payload is None:
+                self.send_json(
+                    400,
+                    {
+                        "ok": False,
+                        "error": "Invalid JSON",
+                    },
+                )
+                return
+
+            try:
+                from bot.strategy.engine import generate_signal
+
+                high = payload.get("high")
+                low = payload.get("low")
+                close = payload.get("close")
+
+                if not isinstance(high, list) or not isinstance(low, list) or not isinstance(close, list):
+                    raise ValueError(
+                        "high, low and close must be arrays"
+                    )
+
+                if not (len(high) == len(low) == len(close)):
+                    raise ValueError(
+                        "high, low and close must have the same length"
+                    )
+
+                if len(close) < 50:
+                    raise ValueError(
+                        "at least 50 candles are required"
+                    )
+
+                signal = generate_signal(
+                    high,
+                    low,
+                    close,
+                )
+
+                self.send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "user_id": user_id,
+                        "signal": signal,
+                    },
+                )
+
+            except (ValueError, TypeError) as error:
+                self.send_json(
+                    400,
+                    {
+                        "ok": False,
+                        "error": str(error),
+                    },
+                )
+
+            except Exception as error:
+                self.send_json(
+                    500,
+                    {
+                        "ok": False,
+                        "error": "Signal generation failed",
+                        "details": str(error),
+                    },
+                )
+
             return
 
         payload = self.read_json()
