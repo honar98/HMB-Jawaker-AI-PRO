@@ -9,4 +9,4 @@ COPY . .
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "-m", "bot.live_paper"]
+CMD ["python", "-m", "bot.api.server"]

@@ -15,3 +15,4 @@ android/app/build/
 
 # Local database
 data/*.db
+.secrets/paytabs.env
