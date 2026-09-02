@@ -1,4 +1,8 @@
 .env
-venv/
+.env.*
+!.env.example
 __pycache__/
-*.pyc
+*.py[cod]
+*.log
+*.tmp
+downloads/
