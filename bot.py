@@ -146,19 +146,94 @@ def decorate_name(name):
     if not name:
         return []
 
+    bold_upper = "𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭"
+    bold_lower = "𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇"
+
+    italic_upper = "𝘈𝘉𝘊𝘋𝘌𝘍𝘎𝘏𝘐𝘑𝘒𝘓𝘔𝘕𝘖𝘗𝘘𝘙𝘚𝘛𝘜𝘝𝘞𝘟𝘠𝘡"
+    italic_lower = "𝘢𝘣𝘤𝘥𝘦𝘧𝘨𝘩𝘪𝘫𝘬𝘭𝘮𝘯𝘰𝘱𝘲𝘳𝘴𝘵𝘶𝘷𝘸𝘹𝘺𝘻"
+
+    bold_italic_upper = "𝑨𝑩𝑪𝑫𝑬𝑭𝑮𝑯𝑰𝑱𝑲𝑳𝑴𝑵𝑶𝑷𝑸𝑹𝑺𝑻𝑼𝑽𝑾𝑿𝒀𝒁"
+    bold_italic_lower = "𝒂𝒃𝒄𝒅𝒆𝒇𝒈𝒉𝒊𝒋𝒌𝒍𝒎𝒏𝒐𝒑𝒒𝒓𝒔𝒕𝒖𝒗𝒘𝒙𝒚𝒛"
+
+    mono_upper = "𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙾𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉"
+    mono_lower = "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣"
+
+    double_upper = "𝔸𝔹ℂ𝔻𝔼𝔽𝔾ℍ𝕀𝕁𝕂𝕃𝕄ℕ𝕆ℙℚℝ𝕊𝕋𝕌𝕍𝕎𝕏𝕐ℤ"
+    double_lower = "𝕒𝕓𝕔𝕕𝕖𝕗𝕘𝕙𝕚𝕛𝕜𝕝𝕞𝕟𝕠𝕡𝕢𝕣𝕤𝕥𝕦𝕧𝕨𝕩𝕪𝕫"
+
+    def convert(s, upper, lower):
+        table = {}
+
+        for a, b in zip("ABCDEFGHIJKLMNOPQRSTUVWXYZ", upper):
+            table[ord(a)] = b
+
+        for a, b in zip("abcdefghijklmnopqrstuvwxyz", lower):
+            table[ord(a)] = b
+
+        return s.translate(table)
+
+    def is_arabic(s):
+        return any(
+            "\u0600" <= c <= "\u06FF"
+            or "\u0750" <= c <= "\u077F"
+            or "\u08A0" <= c <= "\u08FF"
+            for c in s
+        )
+
+    def arabic_style(s, mark):
+        return "".join(
+            c + mark if c not in " \n" else c
+            for c in s
+        )
+
+    # Arabic names
+    # Only decorate the letters themselves.
+    if is_arabic(name):
+        return [
+            "مـحـمـد" if name == "محمد" else name.replace("", "ـ"),
+            arabic_style(name, "\u0360"),
+            arabic_style(name, "\u0337"),
+            arabic_style(name, "\u0332"),
+            arabic_style(name, "\u0305"),
+            arabic_style(name, "\u035F"),
+            f"『{name}』",
+            f"【{name}】",
+            f"《{name}》",
+            f"﴿{name}﴾",
+            f"٭ {name} ٭",
+            f"۞ {name} ۞",
+        ]
+
+    # English names
+    b = convert(name, bold_upper, bold_lower)
+    i = convert(name, italic_upper, italic_lower)
+    bi = convert(name, bold_italic_upper, bold_italic_lower)
+    m = convert(name, mono_upper, mono_lower)
+    d = convert(name, double_upper, double_lower)
+
     return [
-        f"『{name}』",
-        f"꧁༺{name}༻꧂",
-        f"『★ {name} ★』",
-        f"乂 {name} 乂",
-        f"ツ {name} ツ",
-        f"亗 {name} 亗",
-        f"彡 {name} 彡",
-        f"♛ {name} ♛",
-        f"★彡 {name} 彡★",
-        f"༒ {name} ༒",
-        f"☬ {name} ☬",
-        f"𓆩 {name} 𓆪",
+        f"꧁༺ {bi} ༻꧂",
+        f"𓆩♡𓆪 {i} 𓆩♡𓆪",
+        f"『★』 {b} 『★』",
+        f"♛『 {d} 』♛",
+        f"亗〆 {m} 〆亗",
+        f"乂⚡ {b} ⚡乂",
+        f"彡★ {i} ★彡",
+        f"『🔥 {bi} 🔥』",
+        f"『💎 {d} 💎』",
+        f"『👑 {b} 👑』",
+        f"『⚡ {i} ⚡』",
+        f"★彡[ {b} ]彡★",
+        f"꧁𓊈𒆜 {d} 𒆜𓊉꧂",
+        f"⚜️ {i} ⚜️",
+        f"♕ {d} ♕",
+        f"☬ {b} ☬",
+        f"𒆜 {bi} 𒆜",
+        f"𓆩 {i} 𓆪",
+        f"『 {m} 』",
+        f"【 {b} 】",
+        f"〘 {d} 〙",
+        f"《 {i} 》",
     ]
 
 
