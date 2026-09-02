@@ -278,11 +278,18 @@ or previous observed memory.
 
     text = text.strip()
 
-    # Extract memory update.
-    if "<MEMORY_UPDATE>" in text and "</MEMORY_UPDATE>" in text:
+    # Extract and hide internal memory data.
+    if "<MEMORY_UPDATE>" in text:
+        visible_text = text.split("<MEMORY_UPDATE>", 1)[0].strip()
+
         try:
             block = text.split("<MEMORY_UPDATE>", 1)[1]
-            block = block.split("</MEMORY_UPDATE>", 1)[0].strip()
+
+            if "</MEMORY_UPDATE>" in block:
+                block = block.split("</MEMORY_UPDATE>", 1)[0].strip()
+
+            # Remove optional markdown JSON fences.
+            block = block.replace("```json", "").replace("```", "").strip()
 
             update = json.loads(block)
 
@@ -303,10 +310,16 @@ or previous observed memory.
 
             save_memory(session_id, memory)
 
-            text = text.split("<MEMORY_UPDATE>", 1)[0].strip()
-
         except Exception:
-            # If memory parsing fails, still return the AI answer.
             pass
 
-    return text
+        # NEVER expose internal memory data to the user.
+        text = visible_text
+
+    # Safety cleanup in case the model returns internal tags incorrectly.
+    text = text.replace("<MEMORY_UPDATE>", "")
+    text = text.replace("</MEMORY_UPDATE>", "")
+    text = text.replace("```json", "")
+    text = text.replace("```", "")
+
+    return text.strip()
