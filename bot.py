@@ -11,17 +11,134 @@ from telegram.ext import (
 )
 
 from config import BOT_TOKEN
-from downloader.engine import download_media, cleanup
+from downloader.engine import download_media
 
 
-def menu():
+TEXTS = {
+    "ar": {
+        "choose_language": "🌐 اختر اللغة:",
+        "changed": "✅ تم تغيير اللغة إلى العربية.",
+        "welcome": (
+            "🔥 HMB VIDEO DOWNLOADER PRO\n\n"
+            "🔗 أرسل رابط الفيديو.\n\n"
+            "ثم اختر نوع التحميل:\n\n"
+            "🎬 VIDEO — فيديو\n"
+            "🎵 Audio from Video — استخراج الصوت\n\n"
+            "⚡ YouTube • TikTok • Instagram"
+        ),
+        "link_received": (
+            "🔗 تم استلام الرابط.\n\n"
+            "اختر نوع التحميل:"
+        ),
+        "invalid_url": "❌ الرجاء إرسال رابط صحيح.",
+        "no_url": (
+            "❌ لم يتم العثور على الرابط.\n"
+            "أرسل الرابط مرة أخرى."
+        ),
+        "video_wait": (
+            "🎬 VIDEO\n\n"
+            "⏳ جارٍ تحميل الفيديو...\n"
+            "⚡ يرجى الانتظار."
+        ),
+        "audio_wait": (
+            "🎵 Audio from Video\n\n"
+            "⏳ جارٍ استخراج الصوت...\n"
+            "⚡ يرجى الانتظار."
+        ),
+        "cancelled": "❌ تم الإلغاء.",
+        "error": (
+            "❌ حدث خطأ أثناء التحميل.\n\n"
+            "السبب:\n{error}"
+        ),
+        "help": (
+            "📌 طريقة الاستخدام:\n\n"
+            "1️⃣ أرسل رابط الفيديو\n"
+            "2️⃣ اختر نوع التحميل\n"
+            "3️⃣ انتظر حتى يكتمل التحميل\n\n"
+            "🎬 VIDEO\n"
+            "🎵 Audio from Video"
+        ),
+        "change_language": "🌐 تغيير اللغة",
+    },
+
+    "en": {
+        "choose_language": "🌐 Choose your language:",
+        "changed": "✅ Language changed to English.",
+        "welcome": (
+            "🔥 HMB VIDEO DOWNLOADER PRO\n\n"
+            "🔗 Send a video link.\n\n"
+            "Then choose the download type:\n\n"
+            "🎬 VIDEO — Video\n"
+            "🎵 Audio from Video — Extract audio\n\n"
+            "⚡ YouTube • TikTok • Instagram"
+        ),
+        "link_received": (
+            "🔗 Link received.\n\n"
+            "Choose the download type:"
+        ),
+        "invalid_url": "❌ Please send a valid URL.",
+        "no_url": (
+            "❌ No link was found.\n"
+            "Please send the link again."
+        ),
+        "video_wait": (
+            "🎬 VIDEO\n\n"
+            "⏳ Downloading video...\n"
+            "⚡ Please wait."
+        ),
+        "audio_wait": (
+            "🎵 Audio from Video\n\n"
+            "⏳ Extracting audio...\n"
+            "⚡ Please wait."
+        ),
+        "cancelled": "❌ Cancelled.",
+        "error": (
+            "❌ An error occurred while downloading.\n\n"
+            "Reason:\n{error}"
+        ),
+        "help": (
+            "📌 How to use:\n\n"
+            "1️⃣ Send a video link\n"
+            "2️⃣ Choose the download type\n"
+            "3️⃣ Wait for the download to finish\n\n"
+            "🎬 VIDEO\n"
+            "🎵 Audio from Video"
+        ),
+        "change_language": "🌐 Change language",
+    },
+}
+
+
+def get_lang(context):
+    return context.user_data.get("language", "en")
+
+
+def language_keyboard():
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🎬 VIDEO", callback_data="video"),
+            InlineKeyboardButton(
+                "🇸🇦 العربية",
+                callback_data="lang_ar",
+            ),
+            InlineKeyboardButton(
+                "🇬🇧 English",
+                callback_data="lang_en",
+            ),
+        ]
+    ])
+
+
+def menu(lang):
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                "🎬 VIDEO",
+                callback_data="video",
+            ),
         ],
         [
             InlineKeyboardButton(
-                "🎵 دەنگی سەر ڤیدیۆ",
+                "🎵 Audio from Video",
                 callback_data="mp3",
             ),
         ],
@@ -34,129 +151,205 @@ def menu():
     ])
 
 
+def language_button(lang):
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                TEXTS[lang]["change_language"],
+                callback_data="change_language",
+            )
+        ]
+    ])
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if "language" not in context.user_data:
+        await update.message.reply_text(
+            TEXTS["en"]["choose_language"],
+            reply_markup=language_keyboard(),
+        )
+        return
+
+    lang = get_lang(context)
+
     await update.message.reply_text(
-        """🔥 HMB VIDEO DOWNLOADER PRO
-
-🔗 لینکەکەی ڤیدیۆ بنێرە.
-
-پاشان هەڵبژێرە:
-
-🎬 VIDEO — ڤیدیۆ
-🎵 دەنگی سەر ڤیدیۆ — MP3
-🎶 گۆرانیی تەواو — ناسینەوەی گۆرانی
-
-⚡ YouTube • TikTok • Instagram"""
+        TEXTS[lang]["welcome"],
+        reply_markup=language_button(lang),
     )
 
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def help_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    lang = get_lang(context)
+
     await update.message.reply_text(
-        """📌 بەکارهێنان:
-
-1️⃣ لینک بنێرە
-2️⃣ جۆری دابەزاندن هەڵبژێرە
-3️⃣ چاوەڕێ بکە
-
-🎬 VIDEO
-🎵 دەنگی سەر ڤیدیۆ
-🎶 گۆرانیی تەواو"""
+        TEXTS[lang]["help"],
+        reply_markup=language_button(lang),
     )
 
 
-async def link_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def link_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    lang = get_lang(context)
+    t = TEXTS[lang]
+
     url = "".join(update.message.text.split())
 
     if not url.startswith(("http://", "https://")):
         await update.message.reply_text(
-            "❌ تکایە لینکێکی دروست بنێرە."
+            t["invalid_url"]
         )
         return
 
     context.user_data["url"] = url
 
     await update.message.reply_text(
-        "🔗 لینک وەرگیرا.\n\n"
-        "جۆری دابەزاندن هەڵبژێرە:",
-        reply_markup=menu(),
+        t["link_received"],
+        reply_markup=menu(lang),
     )
 
 
-async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def callback_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
     query = update.callback_query
     await query.answer()
 
-    mode = query.data
+    data = query.data
 
-    if mode == "cancel":
-        context.user_data.pop("url", None)
-        await query.edit_message_text("❌ هەڵوەشێنرایەوە.")
+    # Language: Arabic
+    if data == "lang_ar":
+        context.user_data["language"] = "ar"
+
+        await query.edit_message_text(
+            TEXTS["ar"]["changed"]
+        )
+
+        await query.message.reply_text(
+            TEXTS["ar"]["welcome"],
+            reply_markup=language_button("ar"),
+        )
         return
 
+    # Language: English
+    if data == "lang_en":
+        context.user_data["language"] = "en"
+
+        await query.edit_message_text(
+            TEXTS["en"]["changed"]
+        )
+
+        await query.message.reply_text(
+            TEXTS["en"]["welcome"],
+            reply_markup=language_button("en"),
+        )
+        return
+
+    # Change language
+    if data == "change_language":
+        await query.edit_message_text(
+            "🌐 Choose your language:",
+            reply_markup=language_keyboard(),
+        )
+        return
+
+    lang = get_lang(context)
+    t = TEXTS[lang]
+
+    # Cancel
+    if data == "cancel":
+        context.user_data.pop("url", None)
+
+        await query.edit_message_text(
+            t["cancelled"]
+        )
+        return
+
+    # Get saved URL
     url = context.user_data.get("url")
 
     if not url:
         await query.edit_message_text(
-            "❌ لینک نەدۆزرایەوە.\n"
-            "دووبارە لینکەکە بنێرە."
+            t["no_url"]
         )
         return
 
-    if mode == "video":
+    # Video
+    if data == "video":
         await query.edit_message_text(
-            """🎬 VIDEO
-
-⏳ ڤیدیۆکە دابەزێت...
-⚡ تکایە چاوەڕێ بکە."""
+            t["video_wait"]
         )
 
-    elif mode == "mp3":
+    # MP3
+    elif data == "mp3":
         await query.edit_message_text(
-            """🎵 دەنگی سەر ڤیدیۆ
-
-⏳ دەنگەکە لە ڤیدیۆکە جیا دەکرێتەوە...
-⚡ تکایە چاوەڕێ بکە."""
+            t["audio_wait"]
         )
+
+    else:
+        return
 
     temp_dir = None
 
     try:
-        # VIDEO / MP3
-        if mode in ("video", "mp3"):
-            filename, info, temp_dir = await asyncio.to_thread(
-                download_media,
-                url,
-                mode,
+        filename, info, temp_dir = await asyncio.to_thread(
+            download_media,
+            url,
+            data,
+        )
+
+        title = info.get(
+            "title",
+            "HMB Download",
+        )
+
+        with open(filename, "rb") as media:
+
+            if data == "mp3":
+                await query.message.reply_audio(
+                    audio=media,
+                    title=title[:64],
+                    caption=(
+                        "🎵 HMB VIDEO DOWNLOADER PRO\n\n"
+                        f"🎶 {title}"
+                    ),
+                    read_timeout=300,
+                    write_timeout=900,
+                    connect_timeout=120,
+                    pool_timeout=120,
+                )
+
+            else:
+                await query.message.reply_video(
+                    video=media,
+                    caption=(
+                        "🎬 HMB VIDEO DOWNLOADER PRO\n\n"
+                        f"🎥 {title}"
+                    ),
+                    supports_streaming=True,
+                    read_timeout=300,
+                    write_timeout=900,
+                    connect_timeout=120,
+                    pool_timeout=120,
+                )
+
+        context.user_data.pop("url", None)
+
+    except Exception as e:
+        await query.message.reply_text(
+            t["error"].format(
+                error=str(e)[:1000]
             )
+        )
 
-            title = info.get("title", "HMB Download")
-
-            with open(filename, "rb") as media:
-                if mode == "mp3":
-                    await query.message.reply_audio(
-                        audio=media,
-                        title=title[:64],
-                        caption=(
-                            "🎵 HMB VIDEO DOWNLOADER PRO\n\n"
-                            f"🎶 {title}"
-                        ),
-                    )
-                else:
-                    await query.message.reply_video(
-                        video=media,
-                        caption=(
-                            "🎬 HMB VIDEO DOWNLOADER PRO\n\n"
-                            f"🎥 {title}"
-                        ),
-                        supports_streaming=True,
-                    )
-
-            context.user_data.pop("url", None)
-            return
-
-    finally:
-        if temp_dir:
-            cleanup(temp_dir)
+    # IMPORTANT:
+    # Do not call cleanup() here.
+    # downloader/engine.py schedules cleanup after 5 minutes.
 
 
 def main():
@@ -170,13 +363,27 @@ def main():
         .build()
     )
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(
+        CommandHandler(
+            "start",
+            start,
+        )
+    )
+
+    app.add_handler(
+        CommandHandler(
+            "help",
+            help_command,
+        )
+    )
 
     app.add_handler(
         CallbackQueryHandler(
             callback_handler,
-            pattern="^(video|mp3|cancel)$",
+            pattern=(
+                "^(video|mp3|cancel|"
+                "lang_ar|lang_en|change_language)$"
+            ),
         )
     )
 
@@ -187,9 +394,13 @@ def main():
         )
     )
 
-    print("🚀 HMB VIDEO DOWNLOADER PRO is running...")
+    print(
+        "🚀 HMB VIDEO DOWNLOADER PRO is running..."
+    )
 
-    app.run_polling(drop_pending_updates=True)
+    app.run_polling(
+        drop_pending_updates=True
+    )
 
 
 if __name__ == "__main__":
