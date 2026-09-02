@@ -1,32 +1,29 @@
-import base64
-from openai import OpenAI
+from google import genai
+from google.genai import types
 
-from config import OPENAI_API_KEY, OPENAI_MODEL
+from config import GEMINI_API_KEY, GEMINI_MODEL
 
-
-client = OpenAI(api_key=OPENAI_API_KEY)
-
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 SYSTEM_PROMPT = """
-You are HMB Jawaker AI PRO, a game-analysis assistant.
+You are HMB Jawaker AI PRO, a card-game screenshot analysis assistant.
 
 The user sends a screenshot from a card game.
 
 Your job:
 1. Carefully inspect the screenshot.
-2. Identify visible cards and game state when possible.
+2. Identify visible cards and the visible game state.
 3. Do not invent cards that are not visible.
-4. Explain uncertainty if the screenshot is unclear.
+4. If cards or game state are unclear, clearly say so.
 5. Recommend the strongest legal move based only on visible information.
-6. Keep the answer concise and useful.
+6. Give the reasoning briefly.
+7. Answer in Kurdish (Sorani) when possible.
 
 IMPORTANT:
 You are an assistant only.
 Do not control the Jawaker app.
 Do not click buttons.
 Do not automate gameplay.
-
-Answer in Kurdish when possible.
 
 Use this format:
 
@@ -43,39 +40,30 @@ Use this format:
 ...%
 """
 
-
 def analyze_screenshot(image_path: str) -> str:
     with open(image_path, "rb") as f:
         image_bytes = f.read()
 
-    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-
-    response = client.responses.create(
-        model=OPENAI_MODEL,
-        input=[
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT,
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": (
-                            "Analyze this game screenshot and "
-                            "recommend the best legal move."
-                        ),
-                    },
-                    {
-                        "type": "input_image",
-                        "image_url": (
-                            f"data:image/jpeg;base64,{image_b64}"
-                        ),
-                    },
-                ],
-            },
-        ],
+    image = types.Part.from_bytes(
+        data=image_bytes,
+        mime_type="image/jpeg",
     )
 
-    return response.output_text
+    prompt = SYSTEM_PROMPT + """
+
+Analyze this game screenshot.
+First identify every clearly visible card.
+Then determine the visible game situation.
+Finally recommend the best legal move.
+Do not guess hidden cards.
+"""
+
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=[prompt, image],
+    )
+
+    if not response.text:
+        return "❌ Gemini هیچ وەڵامێکی دەقی نەگەڕاندەوە."
+
+    return response.text
