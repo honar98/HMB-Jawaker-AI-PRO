@@ -1,0 +1,11 @@
+app = "hmb-jawaker-ai-pro"
+
+[build]
+
+[env]
+  PORT = "8080"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
