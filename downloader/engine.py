@@ -1,9 +1,13 @@
 import os
 import subprocess
 import tempfile
+import threading
 from pathlib import Path
 
 import yt_dlp
+
+
+CLEANUP_DELAY = 5 * 60  # 5 خولەک
 
 
 def find_downloaded_file(folder):
@@ -113,6 +117,20 @@ def extract_mp3(video_file: str, output_dir: str, title: str):
     return output_file
 
 
+def schedule_cleanup(temp_dir: str):
+    """
+    دوای 5 خولەک temp_dir بە تەواوی دەسڕێتەوە.
+    """
+    timer = threading.Timer(
+        CLEANUP_DELAY,
+        cleanup,
+        args=(temp_dir,)
+    )
+
+    timer.daemon = True
+    timer.start()
+
+
 def download_media(url: str, mode: str):
     temp_dir = tempfile.mkdtemp(prefix="hmb_dl_")
 
@@ -134,7 +152,11 @@ def download_media(url: str, mode: str):
                 title,
             )
 
+            schedule_cleanup(temp_dir)
+
             return mp3_file, info, temp_dir
+
+        schedule_cleanup(temp_dir)
 
         return video_file, info, temp_dir
 
@@ -151,7 +173,10 @@ def cleanup(temp_dir: str):
 
     for item in path.iterdir():
         try:
-            item.unlink()
+            if item.is_file() or item.is_symlink():
+                item.unlink()
+            elif item.is_dir():
+                cleanup(str(item))
         except OSError:
             pass
 
