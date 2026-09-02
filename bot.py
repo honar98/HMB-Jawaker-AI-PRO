@@ -1,6 +1,11 @@
 import asyncio
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    BotCommand,
+)
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -26,39 +31,30 @@ TEXTS = {
             "🎵 Audio from Video — استخراج الصوت\n\n"
             "⚡ YouTube • TikTok • Instagram"
         ),
-        "link_received": (
-            "🔗 تم استلام الرابط.\n\n"
-            "اختر نوع التحميل:"
-        ),
+        "link_received": "🔗 تم استلام الرابط.\n\nاختر نوع التحميل:",
         "invalid_url": "❌ الرجاء إرسال رابط صحيح.",
-        "no_url": (
-            "❌ لم يتم العثور على الرابط.\n"
-            "أرسل الرابط مرة أخرى."
-        ),
-        "video_wait": (
-            "🎬 VIDEO\n\n"
-            "⏳ جارٍ تحميل الفيديو...\n"
-            "⚡ يرجى الانتظار."
-        ),
-        "audio_wait": (
-            "🎵 Audio from Video\n\n"
-            "⏳ جارٍ استخراج الصوت...\n"
-            "⚡ يرجى الانتظار."
-        ),
+        "no_url": "❌ لم يتم العثور على الرابط.\nأرسل الرابط مرة أخرى.",
+        "video_wait": "🎬 VIDEO\n\n⏳ جارٍ تحميل الفيديو...\n⚡ يرجى الانتظار.",
+        "audio_wait": "🎵 Audio from Video\n\n⏳ جارٍ استخراج الصوت...\n⚡ يرجى الانتظار.",
         "cancelled": "❌ تم الإلغاء.",
-        "error": (
-            "❌ حدث خطأ أثناء التحميل.\n\n"
-            "السبب:\n{error}"
-        ),
+        "error": "❌ حدث خطأ.\n\nالسبب:\n{error}",
         "help": (
-            "📌 طريقة الاستخدام:\n\n"
-            "1️⃣ أرسل رابط الفيديو\n"
-            "2️⃣ اختر نوع التحميل\n"
-            "3️⃣ انتظر حتى يكتمل التحميل\n\n"
-            "🎬 VIDEO\n"
-            "🎵 Audio from Video"
+            "📌 الأوامر:\n\n"
+            "/start — بدء البوت\n"
+            "/help — المساعدة\n"
+            "/language — تغيير اللغة\n"
+            "/decorate — زخرفة الاسم\n\n"
+            "📥 أرسل رابط فيديو للتحميل."
         ),
         "change_language": "🌐 تغيير اللغة",
+        "decorate_help": (
+            "✨ زخرفة الاسم\n\n"
+            "أرسل الاسم الذي تريد زخرفته.\n\n"
+            "مثال:\n"
+            "HONAR\n"
+            "محمد"
+        ),
+        "decorated": "✨ زخارف اسمك:\n\n{names}",
     },
 
     "en": {
@@ -72,39 +68,30 @@ TEXTS = {
             "🎵 Audio from Video — Extract audio\n\n"
             "⚡ YouTube • TikTok • Instagram"
         ),
-        "link_received": (
-            "🔗 Link received.\n\n"
-            "Choose the download type:"
-        ),
+        "link_received": "🔗 Link received.\n\nChoose the download type:",
         "invalid_url": "❌ Please send a valid URL.",
-        "no_url": (
-            "❌ No link was found.\n"
-            "Please send the link again."
-        ),
-        "video_wait": (
-            "🎬 VIDEO\n\n"
-            "⏳ Downloading video...\n"
-            "⚡ Please wait."
-        ),
-        "audio_wait": (
-            "🎵 Audio from Video\n\n"
-            "⏳ Extracting audio...\n"
-            "⚡ Please wait."
-        ),
+        "no_url": "❌ No link was found.\nPlease send the link again.",
+        "video_wait": "🎬 VIDEO\n\n⏳ Downloading video...\n⚡ Please wait.",
+        "audio_wait": "🎵 Audio from Video\n\n⏳ Extracting audio...\n⚡ Please wait.",
         "cancelled": "❌ Cancelled.",
-        "error": (
-            "❌ An error occurred while downloading.\n\n"
-            "Reason:\n{error}"
-        ),
+        "error": "❌ An error occurred.\n\nReason:\n{error}",
         "help": (
-            "📌 How to use:\n\n"
-            "1️⃣ Send a video link\n"
-            "2️⃣ Choose the download type\n"
-            "3️⃣ Wait for the download to finish\n\n"
-            "🎬 VIDEO\n"
-            "🎵 Audio from Video"
+            "📌 Commands:\n\n"
+            "/start — Start the bot\n"
+            "/help — Help\n"
+            "/language — Change language\n"
+            "/decorate — Name Decorator\n\n"
+            "📥 Send a video link to download."
         ),
         "change_language": "🌐 Change language",
+        "decorate_help": (
+            "✨ Name Decorator\n\n"
+            "Send the name you want to decorate.\n\n"
+            "Example:\n"
+            "HONAR\n"
+            "محمد"
+        ),
+        "decorated": "✨ Your decorated names:\n\n{names}",
     },
 }
 
@@ -116,14 +103,8 @@ def get_lang(context):
 def language_keyboard():
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton(
-                "🇸🇦 العربية",
-                callback_data="lang_ar",
-            ),
-            InlineKeyboardButton(
-                "🇬🇧 English",
-                callback_data="lang_en",
-            ),
+            InlineKeyboardButton("🇸🇦 العربية", callback_data="lang_ar"),
+            InlineKeyboardButton("🇬🇧 English", callback_data="lang_en"),
         ]
     ])
 
@@ -131,10 +112,7 @@ def language_keyboard():
 def menu(lang):
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton(
-                "🎬 VIDEO",
-                callback_data="video",
-            ),
+            InlineKeyboardButton("🎬 VIDEO", callback_data="video"),
         ],
         [
             InlineKeyboardButton(
@@ -160,6 +138,28 @@ def language_button(lang):
             )
         ]
     ])
+
+
+def decorate_name(name):
+    name = name.strip()
+
+    if not name:
+        return []
+
+    return [
+        f"『{name}』",
+        f"꧁༺{name}༻꧂",
+        f"『★ {name} ★』",
+        f"乂 {name} 乂",
+        f"ツ {name} ツ",
+        f"亗 {name} 亗",
+        f"彡 {name} 彡",
+        f"♛ {name} ♛",
+        f"★彡 {name} 彡★",
+        f"༒ {name} ༒",
+        f"☬ {name} ☬",
+        f"𓆩 {name} 𓆪",
+    ]
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -190,6 +190,29 @@ async def help_command(
     )
 
 
+async def language_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    await update.message.reply_text(
+        "🌐 Choose your language:",
+        reply_markup=language_keyboard(),
+    )
+
+
+async def decorate_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    lang = get_lang(context)
+
+    await update.message.reply_text(
+        TEXTS[lang]["decorate_help"]
+    )
+
+    context.user_data["waiting_for_name"] = True
+
+
 async def link_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -197,7 +220,32 @@ async def link_handler(
     lang = get_lang(context)
     t = TEXTS[lang]
 
-    url = "".join(update.message.text.split())
+    text = update.message.text.strip()
+
+    # Name decorator
+    if context.user_data.get("waiting_for_name"):
+        context.user_data["waiting_for_name"] = False
+
+        names = decorate_name(text)
+
+        if not names:
+            await update.message.reply_text(
+                "❌ Please enter a name."
+            )
+            return
+
+        result = "\n".join(
+            f"{i}. {name}"
+            for i, name in enumerate(names, 1)
+        )
+
+        await update.message.reply_text(
+            t["decorated"].format(names=result)
+        )
+        return
+
+    # Video URL
+    url = "".join(text.split())
 
     if not url.startswith(("http://", "https://")):
         await update.message.reply_text(
@@ -222,7 +270,6 @@ async def callback_handler(
 
     data = query.data
 
-    # Language: Arabic
     if data == "lang_ar":
         context.user_data["language"] = "ar"
 
@@ -236,7 +283,6 @@ async def callback_handler(
         )
         return
 
-    # Language: English
     if data == "lang_en":
         context.user_data["language"] = "en"
 
@@ -250,7 +296,6 @@ async def callback_handler(
         )
         return
 
-    # Change language
     if data == "change_language":
         await query.edit_message_text(
             "🌐 Choose your language:",
@@ -261,7 +306,6 @@ async def callback_handler(
     lang = get_lang(context)
     t = TEXTS[lang]
 
-    # Cancel
     if data == "cancel":
         context.user_data.pop("url", None)
 
@@ -270,7 +314,6 @@ async def callback_handler(
         )
         return
 
-    # Get saved URL
     url = context.user_data.get("url")
 
     if not url:
@@ -279,13 +322,11 @@ async def callback_handler(
         )
         return
 
-    # Video
     if data == "video":
         await query.edit_message_text(
             t["video_wait"]
         )
 
-    # MP3
     elif data == "mp3":
         await query.edit_message_text(
             t["audio_wait"]
@@ -293,8 +334,6 @@ async def callback_handler(
 
     else:
         return
-
-    temp_dir = None
 
     try:
         filename, info, temp_dir = await asyncio.to_thread(
@@ -347,9 +386,17 @@ async def callback_handler(
             )
         )
 
-    # IMPORTANT:
-    # Do not call cleanup() here.
-    # downloader/engine.py schedules cleanup after 5 minutes.
+    # cleanup لە downloader/engine.py ـە.
+    # فایلەکە دوای 5 خولەک خۆکارانە دەسڕدرێتەوە.
+
+
+async def post_init(application):
+    await application.bot.set_my_commands([
+        BotCommand("start", "Start HMB Video Downloader"),
+        BotCommand("help", "Help"),
+        BotCommand("language", "Change language"),
+        BotCommand("decorate", "Decorate a name"),
+    ])
 
 
 def main():
@@ -360,21 +407,24 @@ def main():
         .read_timeout(120)
         .write_timeout(300)
         .pool_timeout(60)
+        .post_init(post_init)
         .build()
     )
 
     app.add_handler(
-        CommandHandler(
-            "start",
-            start,
-        )
+        CommandHandler("start", start)
     )
 
     app.add_handler(
-        CommandHandler(
-            "help",
-            help_command,
-        )
+        CommandHandler("help", help_command)
+    )
+
+    app.add_handler(
+        CommandHandler("language", language_command)
+    )
+
+    app.add_handler(
+        CommandHandler("decorate", decorate_command)
     )
 
     app.add_handler(
