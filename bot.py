@@ -53,7 +53,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await telegram_file.download_to_drive(image_path)
 
-        result = analyze_screenshot(image_path)
+        result = analyze_screenshot(image_path, session_id=str(update.effective_chat.id))
 
         await status.edit_text(
             "🧠 HMB Jawaker AI PRO\n\n"
